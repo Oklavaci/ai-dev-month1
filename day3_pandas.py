@@ -9,6 +9,9 @@ data = {
     "signal_processing": [88, 92, 79, np.nan, 60]
 }
 
+
+
+
 df = pd.DataFrame(data)
 
 print("\nOriginal dataframe:")
