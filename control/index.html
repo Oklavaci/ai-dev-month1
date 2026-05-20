@@ -1,0 +1,632 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Arm Control Game - Catch the Object</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        .container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 30px;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            max-width: 1000px;
+        }
+
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 10px;
+        }
+
+        .info-box {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            width: 100%;
+            margin-bottom: 10px;
+        }
+
+        .stat {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+            font-weight: bold;
+        }
+
+        .stat-label {
+            font-size: 12px;
+            opacity: 0.9;
+            display: block;
+            margin-bottom: 5px;
+        }
+
+        .stat-value {
+            font-size: 24px;
+        }
+
+        canvas {
+            border: 3px solid #333;
+            background: linear-gradient(to bottom, #87CEEB 0%, #E0F6FF 70%, #90EE90 70%, #228B22 100%);
+            border-radius: 10px;
+            display: block;
+            cursor: none;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        }
+
+        .controls {
+            text-align: center;
+            font-size: 14px;
+            color: #666;
+            line-height: 1.6;
+        }
+
+        .controls p {
+            margin: 5px 0;
+        }
+
+        .key {
+            background: #667eea;
+            color: white;
+            padding: 4px 12px;
+            border-radius: 4px;
+            font-weight: bold;
+            display: inline-block;
+            margin: 0 4px;
+        }
+
+        .info-text {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 15px;
+            border-radius: 5px;
+            margin-top: 10px;
+            color: #856404;
+            font-size: 13px;
+        }
+
+        .game-status {
+            font-size: 16px;
+            font-weight: bold;
+            height: 25px;
+            min-width: 200px;
+        }
+
+        .caught {
+            color: #28a745;
+            animation: pulse 0.5s;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.2); }
+        }
+
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            margin-top: 10px;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        .ping-control {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            background: #f8f9fa;
+            padding: 15px 25px;
+            border-radius: 10px;
+            width: 100%;
+            max-width: 300px;
+            justify-content: center;
+        }
+
+        .ping-control label {
+            font-weight: bold;
+            color: #333;
+            font-size: 14px;
+        }
+
+        .ping-control input {
+            width: 80px;
+            padding: 8px 12px;
+            border: 2px solid #667eea;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: bold;
+            color: #667eea;
+            text-align: center;
+        }
+
+        .ping-control input:focus {
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.2);
+        }
+
+        .ping-unit {
+            color: #667eea;
+            font-weight: bold;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎮 Arm Control Game</h1>
+        
+        <div class="info-box">
+            <div class="stat">
+                <span class="stat-label">Caught Objects</span>
+                <span class="stat-value" id="score">0</span>
+            </div>
+            <div class="stat">
+                <span class="stat-label">Attempts</span>
+                <span class="stat-value" id="attempts">0</span>
+            </div>
+            <div class="stat">
+                <span class="stat-label">Catch Rate</span>
+                <span class="stat-value" id="rate">0%</span>
+            </div>
+            <div class="stat">
+                <span class="stat-label">Current Ping</span>
+                <span class="stat-value" id="pingDisplay">100ms</span>
+            </div>
+        </div>
+
+        <div class="ping-control">
+            <label for="pingInput">⚙️ Adjust Ping:</label>
+            <input type="number" id="pingInput" min="10" max="500" value="100" step="10">
+            <span class="ping-unit">ms</span>
+        </div>
+
+        <canvas id="gameCanvas" width="800" height="500"></canvas>
+
+        <div class="game-status" id="gameStatus"></div>
+
+        <div class="controls">
+            <p><strong>Controls:</strong></p>
+            <p>Use <span class="key">←</span> <span class="key">→</span> to move the claw left/right</p>
+            <p>Press <span class="key">↓</span> to extend the claw and catch the object</p>
+            <p>Adjust the ping above to change difficulty!</p>
+            <p><strong>Note:</strong> Your inputs are delayed by the ping value you set</p>
+        </div>
+
+        <div class="info-text">
+            💡 <strong>Tip:</strong> Position your arm ahead of the ball's path, then press DOWN at just the right moment to catch it. Compensate for the 100ms delay by predicting where the ball will be!
+        </div>
+
+        <button onclick="location.reload()">Reset Game</button>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // Game objects
+        const arm = {
+            x: canvas.width / 2,
+            y: canvas.height - 80,
+            width: 60,
+            height: 30,
+            targetX: canvas.width / 2,
+            catchRadius: 50,
+            isExtending: false,
+            extendAmount: 0,
+            maxExtend: 80
+        };
+
+        const object = {
+            x: 100,
+            y: canvas.height - 100,
+            radius: 15,
+            vx: 0,
+            vy: 0,
+            gravity: 0.2,
+            bounce: 0.6
+        };
+
+        // Game state
+        let score = 0;
+        let attempts = 0;
+        let inputQueue = [];
+        let lastInputTime = 0;
+        let INPUT_DELAY = 100; // 100ms delay (adjustable)
+
+        const keys = {
+            ArrowUp: false,
+            ArrowDown: false,
+            ArrowLeft: false,
+            ArrowRight: false
+        };
+
+        // Event listeners with delayed input queue
+        document.addEventListener('keydown', (e) => {
+            if (keys.hasOwnProperty(e.key)) {
+                e.preventDefault();
+                if (!keys[e.key]) {
+                    keys[e.key] = true;
+                    inputQueue.push({ key: e.key, time: Date.now() });
+                }
+            }
+        });
+
+        document.addEventListener('keyup', (e) => {
+            if (keys.hasOwnProperty(e.key)) {
+                e.preventDefault();
+                keys[e.key] = false;
+            }
+        });
+
+        // Ping control
+        document.getElementById('pingInput').addEventListener('input', (e) => {
+            INPUT_DELAY = parseInt(e.target.value) || 100;
+            document.getElementById('pingDisplay').textContent = INPUT_DELAY + 'ms';
+        });
+
+        // Process queued inputs with delay
+        function processInputs() {
+            const now = Date.now();
+            inputQueue = inputQueue.filter(input => {
+                if (now - input.time >= INPUT_DELAY) {
+                    // Apply the delayed input
+                    if (input.key === 'ArrowLeft') {
+                        arm.targetX -= 25;
+                    } else if (input.key === 'ArrowRight') {
+                        arm.targetX += 25;
+                    } else if (input.key === 'ArrowDown') {
+                        // Trigger catch action
+                        arm.isExtending = true;
+                    }
+                    arm.targetX = Math.max(40, Math.min(canvas.width - 40, arm.targetX));
+                    return false;
+                }
+                return true;
+            });
+        }
+
+        // Smooth arm movement
+        function updateArm() {
+            const xDiff = arm.targetX - arm.x;
+            arm.x += xDiff * 0.2; // Smooth interpolation
+            
+            // Handle extend animation
+            if (arm.isExtending) {
+                arm.extendAmount = Math.min(arm.extendAmount + 15, arm.maxExtend);
+                if (arm.extendAmount >= arm.maxExtend) {
+                    arm.isExtending = false;
+                }
+            } else {
+                arm.extendAmount = Math.max(arm.extendAmount - 10, 0);
+            }
+        }
+
+        // Gaussian random number generator (Box-Muller transform)
+        function gaussianRandom(mean = 0, stdev = 1) {
+            const u = 1 - Math.random();
+            const v = Math.random();
+            const z0 = Math.sqrt(-2.0 * Math.log(u)) * Math.cos(2.0 * Math.PI * v);
+            return z0 * stdev + mean;
+        }
+
+        // Update object physics with Wiener process on x-axis
+        function updateObject() {
+            // Wiener process on x-axis: vx changes by random Gaussian increment
+            const wienerIncrement = gaussianRandom(0, 0.8); // Gaussian with std dev 0.8
+            object.vx += wienerIncrement;
+            
+            // Soft constraint on velocity
+            object.vx = Math.max(-8, Math.min(8, object.vx));
+
+            // Update position
+            object.x += object.vx;
+            object.vy += object.gravity;
+            object.y += object.vy;
+
+            // Bounce off walls
+            if (object.x - object.radius < 0) {
+                object.x = object.radius;
+                object.vx = Math.abs(object.vx) * 0.85;
+            }
+            if (object.x + object.radius > canvas.width) {
+                object.x = canvas.width - object.radius;
+                object.vx = -Math.abs(object.vx) * 0.85;
+            }
+
+            // Bounce off ground
+            if (object.y + object.radius > canvas.height - 30) {
+                object.y = canvas.height - 30 - object.radius;
+                object.vy = -object.vy * object.bounce;
+                object.vx *= 0.9;
+            }
+        }
+
+        // Check collision between arm and object
+        function checkCollision() {
+            // Only check collision if arm is extended and object is at catch height
+            if (arm.extendAmount < arm.maxExtend * 0.5) {
+                return false;
+            }
+
+            // Check horizontal distance
+            const dx = Math.abs(object.x - arm.x);
+            const dy = object.y - (canvas.height - 30 - object.radius);
+
+            // Must be close horizontally and near the ground
+            if (dx < arm.catchRadius && dy < 30 && dy > -30) {
+                return true;
+            }
+
+            return false;
+        }
+
+        // Draw functions
+        function drawGround() {
+            // Ground
+            ctx.fillStyle = '#228B22';
+            ctx.fillRect(0, canvas.height - 30, canvas.width, 30);
+
+            // Grass details
+            ctx.strokeStyle = 'rgba(0, 100, 0, 0.3)';
+            ctx.lineWidth = 1;
+            for (let i = 0; i < canvas.width; i += 20) {
+                ctx.beginPath();
+                ctx.moveTo(i, canvas.height - 30);
+                ctx.lineTo(i - 10, canvas.height - 20);
+                ctx.stroke();
+            }
+        }
+
+        function drawArm() {
+            const machineBoxX = arm.x - 40;
+            const machineBoxY = 20;
+            const machineBoxW = 80;
+            const machineBoxH = 60;
+
+            // Draw claw machine box (top)
+            ctx.fillStyle = '#FFD700';
+            ctx.fillRect(machineBoxX, machineBoxY, machineBoxW, machineBoxH);
+            ctx.strokeStyle = '#FFA500';
+            ctx.lineWidth = 3;
+            ctx.strokeRect(machineBoxX, machineBoxY, machineBoxW, machineBoxH);
+
+            // Machine window
+            ctx.fillStyle = '#87CEEB';
+            ctx.fillRect(machineBoxX + 10, machineBoxY + 10, machineBoxW - 20, 25);
+            ctx.strokeStyle = '#333';
+            ctx.lineWidth = 1;
+            ctx.strokeRect(machineBoxX + 10, machineBoxY + 10, machineBoxW - 20, 25);
+
+            // Control panel detail
+            ctx.fillStyle = '#FFB500';
+            ctx.fillRect(machineBoxX + 15, machineBoxY + 40, 20, 15);
+            ctx.fillRect(machineBoxX + 45, machineBoxY + 40, 20, 15);
+
+            // Arm support rod (vertical)
+            ctx.strokeStyle = '#555';
+            ctx.lineWidth = 8;
+            ctx.beginPath();
+            ctx.moveTo(arm.x, machineBoxY + machineBoxH);
+            ctx.lineTo(arm.x, arm.y - 30);
+            ctx.stroke();
+
+            // Horizontal arm carrier (slides left/right)
+            ctx.fillStyle = '#888';
+            ctx.fillRect(arm.x - 20, arm.y - 30, 40, 15);
+            ctx.strokeStyle = '#555';
+            ctx.lineWidth = 2;
+            ctx.strokeRect(arm.x - 20, arm.y - 30, 40, 15);
+
+            // Extending claw arm
+            const armLength = 40 + arm.extendAmount;
+            ctx.strokeStyle = arm.isExtending ? '#DD0000' : '#CC0000';
+            ctx.lineWidth = 6;
+            ctx.beginPath();
+            ctx.moveTo(arm.x + 20, arm.y - 22);
+            ctx.lineTo(arm.x + 20 + armLength, arm.y - 22);
+            ctx.stroke();
+
+            // Claw fingers (4 fingers)
+            const clawX = arm.x + 20 + armLength;
+            const clawY = arm.y - 22;
+            const fingerSpread = arm.extendAmount > 20 ? 12 : 6;
+
+            ctx.strokeStyle = arm.isExtending ? '#DD0000' : '#CC0000';
+            ctx.lineWidth = 4;
+            ctx.lineCap = 'round';
+
+            // Left fingers
+            ctx.beginPath();
+            ctx.moveTo(clawX, clawY);
+            ctx.lineTo(clawX - fingerSpread, clawY + 15);
+            ctx.stroke();
+
+            ctx.beginPath();
+            ctx.moveTo(clawX - 5, clawY);
+            ctx.lineTo(clawX - 10 - fingerSpread, clawY + 15);
+            ctx.stroke();
+
+            // Right fingers
+            ctx.beginPath();
+            ctx.moveTo(clawX + 5, clawY);
+            ctx.lineTo(clawX + 10 + fingerSpread, clawY + 15);
+            ctx.stroke();
+
+            ctx.beginPath();
+            ctx.moveTo(clawX, clawY);
+            ctx.lineTo(clawX + fingerSpread, clawY + 15);
+            ctx.stroke();
+
+            // Catch zone indicator
+            ctx.strokeStyle = 'rgba(255, 107, 107, 0.2)';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.arc(arm.x, canvas.height - 30, arm.catchRadius, 0, Math.PI * 2);
+            ctx.stroke();
+        }
+
+        function drawObject() {
+            // Shadow
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.1)';
+            ctx.beginPath();
+            ctx.ellipse(object.x, canvas.height - 30, object.radius * 0.8, 8, 0, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Object
+            const gradient = ctx.createRadialGradient(
+                object.x - 5,
+                object.y - 5,
+                5,
+                object.x,
+                object.y,
+                object.radius
+            );
+            gradient.addColorStop(0, '#7FFF00');
+            gradient.addColorStop(1, '#32CD32');
+
+            ctx.fillStyle = gradient;
+            ctx.beginPath();
+            ctx.arc(object.x, object.y, object.radius, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.strokeStyle = '#228B22';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+        }
+
+        function drawInputDelay() {
+            // Show current input queue status
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+            ctx.fillRect(10, 10, 200, 80);
+
+            ctx.fillStyle = '#FFF';
+            ctx.font = '12px Arial';
+            ctx.fillText('⏱ Input Queue Status:', 20, 30);
+
+            if (inputQueue.length > 0) {
+                ctx.fillStyle = '#FFD700';
+                ctx.fillText(`Queued inputs: ${inputQueue.length}`, 20, 50);
+                
+                inputQueue.forEach((input, i) => {
+                    const remaining = INPUT_DELAY - (Date.now() - input.time);
+                    ctx.fillText(`  ${input.key}: ${Math.max(0, remaining)}ms`, 20, 65 + i * 12);
+                });
+            } else {
+                ctx.fillStyle = '#00FF00';
+                ctx.fillText('No delay', 20, 50);
+            }
+        }
+
+        // Update UI
+        function updateUI() {
+            document.getElementById('score').textContent = score;
+            document.getElementById('attempts').textContent = attempts;
+            
+            const rate = attempts > 0 ? Math.round((score / attempts) * 100) : 0;
+            document.getElementById('rate').textContent = rate + '%';
+
+            const status = document.getElementById('gameStatus');
+            if (inputQueue.length > 0) {
+                status.textContent = `⏳ Processing input... (${inputQueue.length} queued)`;
+                status.classList.add('caught');
+            } else {
+                status.textContent = '';
+                status.classList.remove('caught');
+            }
+        }
+
+        // Main game loop
+        let lastCatchTime = 0;
+        function gameLoop() {
+            // Clear canvas
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Update game state
+            processInputs();
+            updateArm();
+            updateObject();
+
+            // Check collision
+            if (checkCollision()) {
+                if (Date.now() - lastCatchTime > 500) {
+                    score++;
+                    lastCatchTime = Date.now();
+                    
+                    // Reset object
+                    object.x = Math.random() * canvas.width;
+                    object.y = 0;
+                    object.vy = 0;
+                    object.vx = (Math.random() - 0.5) * 6;
+
+                    // Show caught message
+                    const status = document.getElementById('gameStatus');
+                    status.textContent = '✨ Caught!';
+                    status.classList.add('caught');
+                    setTimeout(() => {
+                        status.classList.remove('caught');
+                        status.textContent = '';
+                    }, 500);
+                }
+            }
+
+            // Reset attempts counter (every time object resets)
+            if (object.y > canvas.height + 50) {
+                attempts++;
+                object.x = Math.random() * (canvas.width - 100) + 50;
+                object.y = 0;
+                object.vy = 0;
+                object.vx = (Math.random() - 0.5) * 6;
+            }
+
+            // Draw everything
+            drawGround();
+            drawObject();
+            drawArm();
+            drawInputDelay();
+
+            // Update UI
+            updateUI();
+
+            requestAnimationFrame(gameLoop);
+        }
+
+        // Start game
+        gameLoop();
+    </script>
+</body>
+</html>
